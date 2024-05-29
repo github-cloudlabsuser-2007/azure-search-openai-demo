@@ -45,6 +45,10 @@ class Document:
     reranker_score: Optional[float] = None
 
     def serialize_for_results(self) -> dict[str, Any]:
+        """
+        Serializes the Document object for results.
+        Returns a dictionary representation of the Document object.
+        """
         return {
             "id": self.id,
             "content": self.content,
@@ -73,10 +77,13 @@ class Document:
 
     @classmethod
     def trim_embedding(cls, embedding: Optional[List[float]]) -> Optional[str]:
-        """Returns a trimmed list of floats from the vector embedding."""
+        """
+        Returns a trimmed list of floats from the vector embedding.
+        If the embedding list has more than 2 items, it formats the list to show the first 2 items followed by the count of the remaining items.
+        If the embedding list has 2 or fewer items, it returns the string representation of the embedding.
+        """
         if embedding:
             if len(embedding) > 2:
-                # Format the embedding list to show the first 2 items followed by the count of the remaining items."""
                 return f"[{embedding[0]}, {embedding[1]} ...+{len(embedding) - 2} more]"
             else:
                 return str(embedding)
@@ -119,14 +126,32 @@ class Approach(ABC):
         self.vision_token_provider = vision_token_provider
 
     def build_filter(self, overrides: dict[str, Any], auth_claims: dict[str, Any]) -> Optional[str]:
-        exclude_category = overrides.get("exclude_category")
-        security_filter = self.auth_helper.build_security_filters(overrides, auth_claims)
+        # Create an empty list to store the filters
         filters = []
+
+        # Get the value of the 'exclude_category' key from the 'overrides' dictionary
+        exclude_category = overrides.get("exclude_category")
+
+        # Build the security filters using the 'auth_helper' object
+        security_filter = self.auth_helper.build_security_filters(overrides, auth_claims)
+
+        # Check if 'exclude_category' is not None
         if exclude_category:
+            # Add a filter to exclude documents with a specific category
             filters.append("category ne '{}'".format(exclude_category.replace("'", "''")))
+
+        # Check if 'security_filter' is not None
         if security_filter:
+            # Add the security filter to the list of filters
             filters.append(security_filter)
-        return None if len(filters) == 0 else " and ".join(filters)
+
+        # Check if there are any filters in the list
+        if len(filters) == 0:
+            # Return None if there are no filters
+            return None
+        else:
+            # Join the filters using the 'and' operator and return the result
+            return " and ".join(filters)
 
     async def search(
         self,
